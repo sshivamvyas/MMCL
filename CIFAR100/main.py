@@ -237,7 +237,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train SimCLR on Tiny ImageNet')
     parser.add_argument('--feature_dim', default=128, type=int, help='Feature dim for latent vector')
     parser.add_argument('--k', default=200, type=int, help='Top k most similar images used to predict the label')
-    parser.add_argument('--batch_size', default=256, type=int, help='Number of images in each mini-batch')
+    # IMPORTANT: Reduced default batch_size to 64 to help avoid out-of-memory errors.
+    parser.add_argument('--batch_size', default=64, type=int, help='Number of images in each mini-batch')
     parser.add_argument('--epochs', default=400, type=int, help='Number of sweeps over the dataset to train')
     parser.add_argument('--dataset_name', default='tiny_imagenet', type=str, help='Dataset name to use')
     parser.add_argument('--criterion_to_use', default='default', type=str, help='Choose loss function')
@@ -282,45 +283,4 @@ if __name__ == '__main__':
     # Model and optimizer.
     model = Model(feature_dim).to(device)
     model = nn.DataParallel(model)
-    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-6)
-    
-    # Number of classes.
-    c = len(memory_data.classes)
-    print('# Classes: {}'.format(c))
-    
-    epoch_start = 1
-    if args.criterion_to_use == 'mmcl_inv':
-        crit = svm_losses.MMCL_inv(sigma=args.gamma, batch_size=args.batch_size, anchor_count=2, C=args.C_reg)
-    elif args.criterion_to_use == 'mmcl_pgd':
-        crit = svm_losses.MMCL_pgd(sigma=args.gamma, batch_size=args.batch_size, anchor_count=2, C=args.C_reg,
-                                   solver_type=args.solver_type, use_norm=args.use_norm)
-    else:
-        crit = svm_losses.MMCL_inv(sigma=args.gamma, batch_size=args.batch_size, anchor_count=2, C=args.C_reg)
-    
-    # Ensure results directories exist.
-    result_dir = os.path.join('..', 'results', dataset_name, run_name)
-    if not os.path.exists(os.path.join('..', 'results')):
-        os.mkdir(os.path.join('..', 'results'))
-    if not os.path.exists(os.path.join('..', 'results', dataset_name)):
-        os.mkdir(os.path.join('..', 'results', dataset_name))
-    if not os.path.exists(result_dir):
-        os.mkdir(result_dir)
-    
-    # Training loop.
-    for epoch in range(epoch_start, epochs + 1):
-        
-        if epoch in sigma_drop_epochs:
-            cprint(f'Sigma right now {crit.sigma}', 'red')
-            crit.sigma = str(float(crit.sigma) / 10.0)
-            cprint(f'Sigma after drop {crit.sigma}', 'green')
-        
-        metrics = train(model, train_loader, optimizer, crit, args, epoch, epochs, batch_size)
-        metrics['epoch'] = epoch
-        metrics['lr'] = get_lr(optimizer)
-        
-        if epoch % args.val_freq == 0:
-            test_acc_1, test_acc_5 = test(model, memory_loader, test_loader, k, c, epoch, epochs, dataset_name)
-            model_path = os.path.join('..', 'results', dataset_name, run_name, f'model_{epoch}.pth')
-            torch.save(model.state_dict(), model_path)
-            metrics['top1'] = test_acc_1
-            metrics['top5'] = test_acc_5
+    optimizer
