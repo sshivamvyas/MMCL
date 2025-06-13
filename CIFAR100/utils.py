@@ -2,11 +2,11 @@ from PIL import Image
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 import torch
-from random import sample
+from torch.utils.data import Subset  # <-- Added import
+import random
 import cv2
 import numpy as np
 import os
-import random
 
 class TinyImageNetPair_true_label(ImageFolder):
     """
@@ -79,13 +79,13 @@ class GaussianBlur(object):
         return Image.fromarray(sample)
 
 # Define transforms.
-# Note: Tiny ImageNet images are 64x64
+# Note: Tiny ImageNet images are 64x64.
 train_transform = transforms.Compose([
     transforms.RandomResizedCrop(64),
     transforms.RandomHorizontalFlip(p=0.5),
     transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
     transforms.RandomGrayscale(p=0.2),
-    GaussianBlur(kernel_size=int(0.1 * 64)),  # Fix for OpenCV errors
+    GaussianBlur(kernel_size=int(0.1 * 64)),  # Fix for OpenCV: ensures odd kernel size.
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
@@ -98,6 +98,10 @@ test_transform = transforms.Compose([
 def get_dataset(dataset_name, dataset_location, pair=True):
     """
     Returns subsampled train_data (5000 images), memory_data (500 images), test_data (500 images).
+    For Tiny ImageNet, the folder structure is assumed:
+      dataset_location/
+          train/
+          val/
     """
     if pair:
         if dataset_name == 'tiny_imagenet':
@@ -118,12 +122,13 @@ def get_dataset(dataset_name, dataset_location, pair=True):
         else:
             raise Exception('Invalid dataset name')
 
-    # **Subsample dataset indices randomly**
+    # Subsample dataset indices randomly:
+    # Here, change the 5000/500/500 as needed.
     train_indices = random.sample(range(len(train_data)), min(5000, len(train_data)))
     memory_indices = random.sample(range(len(memory_data)), min(500, len(memory_data)))
     test_indices = random.sample(range(len(test_data)), min(500, len(test_data)))
 
-    # **Apply subsampling correctly**
+    # Apply subsampling using Subset
     train_data = Subset(train_data, train_indices)
     memory_data = Subset(memory_data, memory_indices)
     test_data = Subset(test_data, test_indices)
