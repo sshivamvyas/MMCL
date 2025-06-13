@@ -124,13 +124,13 @@ def get_dataset(dataset_name, dataset_location, pair=True):
 
     # Subsample dataset indices randomly:
     # Here, change the 5000/500/500 as needed.
-    train_indices = random.sample(range(len(train_data)), min(5000, len(train_data)))
-    memory_indices = random.sample(range(len(memory_data)), min(500, len(memory_data)))
-    test_indices = random.sample(range(len(test_data)), min(500, len(test_data)))
+    # train_indices = random.sample(range(len(train_data)), min(5000, len(train_data)))
+    # memory_indices = random.sample(range(len(memory_data)), min(500, len(memory_data)))
+    # test_indices = random.sample(range(len(test_data)), min(500, len(test_data)))
 
-    # Apply subsampling using Subset
-    train_data = Subset(train_data, train_indices)
-    memory_data = Subset(memory_data, memory_indices)
-    test_data = Subset(test_data, test_indices)
+    # # Apply subsampling using Subset
+    # train_data = Subset(train_data, train_indices)
+    # memory_data = Subset(memory_data, memory_indices)
+    # test_data = Subset(test_data, test_indices)
 
     return train_data, memory_data, test_data
