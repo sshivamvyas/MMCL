@@ -1,7 +1,8 @@
 from PIL import Image
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
-from random import sample 
+import torch
+from random import sample
 import cv2
 import numpy as np
 import os
@@ -26,12 +27,10 @@ class TinyImageNetPair_true_label(ImageFolder):
         return label_dict
     
     def __getitem__(self, index):
-        # Load the first image and get its target label.
         path1, target = self.samples[index]
         img1 = Image.open(path1).convert("RGB")
         
-        # Randomly sample a second image with the same label.
-        index_example_same_label = sample(self.label_index[target], 1)[0]
+        index_example_same_label = random.choice(self.label_index[target])
         path2 = self.samples[index_example_same_label][0]
         img2 = Image.open(path2).convert("RGB")
         
@@ -62,11 +61,15 @@ class TinyImageNetPair(ImageFolder):
 class GaussianBlur(object):
     """
     Implements Gaussian blur as described in the SimCLR paper.
+    Ensures the kernel size is odd to prevent OpenCV errors.
     """
     def __init__(self, kernel_size, min=0.1, max=2.0):
+        # Ensure kernel size is odd
+        if kernel_size % 2 == 0:
+            kernel_size += 1
+        self.kernel_size = kernel_size
         self.min = min
         self.max = max
-        self.kernel_size = kernel_size
 
     def __call__(self, sample):
         sample = np.array(sample)
@@ -82,7 +85,7 @@ train_transform = transforms.Compose([
     transforms.RandomHorizontalFlip(p=0.5),
     transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
     transforms.RandomGrayscale(p=0.2),
-    GaussianBlur(kernel_size=int(0.1 * 64)),
+    GaussianBlur(kernel_size=int(0.1 * 64)),  # Fix for OpenCV errors
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
@@ -91,22 +94,6 @@ test_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
-
-def get_dataset(dataset_name, dataset_location, pair=True):
-    """
-    Returns train_data, memory_data, test_data based on the dataset using the provided location.
-    
-    For Tiny ImageNet, the structure is expected to be like:
-      /kaggle/input/tiny-image-net/tiny-imagenet-200/
-          train/
-          val/
-          test/  (optionally)
-    
-    dataset_name:
-        'tiny_imagenet' -> pairs use two identical augmented samples of the same image.
-        'tiny_imagenet_true_label' -> pairs are created by sampling two different images of the same class.
-    """
-    
 
 def get_dataset(dataset_name, dataset_location, pair=True):
     """
@@ -131,38 +118,14 @@ def get_dataset(dataset_name, dataset_location, pair=True):
         else:
             raise Exception('Invalid dataset name')
 
-    # Subsample dataset indices randomly
-    train_indices = random.sample(range(len(train_data)), min(100, len(train_data)))
-    memory_indices = random.sample(range(len(memory_data)), min(10, len(memory_data)))
-    test_indices = random.sample(range(len(test_data)), min(10, len(test_data)))
+    # **Subsample dataset indices randomly**
+    train_indices = random.sample(range(len(train_data)), min(5000, len(train_data)))
+    memory_indices = random.sample(range(len(memory_data)), min(500, len(memory_data)))
+    test_indices = random.sample(range(len(test_data)), min(500, len(test_data)))
 
-    # Apply subsampling
-    train_data = torch.utils.data.Subset(train_data, train_indices)
-    memory_data = torch.utils.data.Subset(memory_data, memory_indices)
-    test_data = torch.utils.data.Subset(test_data, test_indices)
+    # **Apply subsampling correctly**
+    train_data = Subset(train_data, train_indices)
+    memory_data = Subset(memory_data, memory_indices)
+    test_data = Subset(test_data, test_indices)
 
     return train_data, memory_data, test_data
-    # if pair:
-    #     if dataset_name == 'tiny_imagenet':
-    #         train_data = TinyImageNetPair(root=os.path.join(dataset_location, "train"), transform=train_transform)
-    #         memory_data = TinyImageNetPair(root=os.path.join(dataset_location, "train"), transform=test_transform)
-    #         test_data = TinyImageNetPair(root=os.path.join(dataset_location, "val"), transform=test_transform)
-    #     elif dataset_name == 'tiny_imagenet_true_label':
-    #         train_data = TinyImageNetPair_true_label(root=os.path.join(dataset_location, "train"), transform=train_transform)
-    #         memory_data = TinyImageNetPair_true_label(root=os.path.join(dataset_location, "train"), transform=test_transform)
-    #         test_data = TinyImageNetPair_true_label(root=os.path.join(dataset_location, "val"), transform=test_transform)
-    #     else:
-    #         raise Exception('Invalid dataset name')
-    # else:
-    #     if dataset_name in ['tiny_imagenet', 'tiny_imagenet_true_label']:
-    #         train_data = ImageFolder(root=os.path.join(dataset_location, "train"), transform=train_transform)
-    #         memory_data = ImageFolder(root=os.path.join(dataset_location, "train"), transform=test_transform)
-    #         test_data = ImageFolder(root=os.path.join(dataset_location, "val"), transform=test_transform)
-    #     else:
-    #         raise Exception('Invalid dataset name')
-
-    # return train_data, memory_data, test_data
-
-# Example Usage:
-# dataset_location should be set to "/kaggle/input/tiny-image-net/tiny-imagenet-200"
-train_data, memory_data, test_data = get_dataset('tiny_imagenet', '/kaggle/input/tiny-image-net/tiny-imagenet-200', pair=True)
