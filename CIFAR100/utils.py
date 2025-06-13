@@ -132,9 +132,9 @@ def get_dataset(dataset_name, dataset_location, pair=True):
             raise Exception('Invalid dataset name')
 
     # Subsample dataset indices randomly
-    train_indices = random.sample(range(len(train_data)), min(5000, len(train_data)))
-    memory_indices = random.sample(range(len(memory_data)), min(500, len(memory_data)))
-    test_indices = random.sample(range(len(test_data)), min(500, len(test_data)))
+    train_indices = random.sample(range(len(train_data)), min(100, len(train_data)))
+    memory_indices = random.sample(range(len(memory_data)), min(10, len(memory_data)))
+    test_indices = random.sample(range(len(test_data)), min(10, len(test_data)))
 
     # Apply subsampling
     train_data = torch.utils.data.Subset(train_data, train_indices)
