@@ -5,6 +5,7 @@ from random import sample
 import cv2
 import numpy as np
 import os
+import random
 
 class TinyImageNetPair_true_label(ImageFolder):
     """
@@ -105,6 +106,12 @@ def get_dataset(dataset_name, dataset_location, pair=True):
         'tiny_imagenet' -> pairs use two identical augmented samples of the same image.
         'tiny_imagenet_true_label' -> pairs are created by sampling two different images of the same class.
     """
+    
+
+def get_dataset(dataset_name, dataset_location, pair=True):
+    """
+    Returns subsampled train_data (5000 images), memory_data (500 images), test_data (500 images).
+    """
     if pair:
         if dataset_name == 'tiny_imagenet':
             train_data = TinyImageNetPair(root=os.path.join(dataset_location, "train"), transform=train_transform)
@@ -124,7 +131,37 @@ def get_dataset(dataset_name, dataset_location, pair=True):
         else:
             raise Exception('Invalid dataset name')
 
+    # Subsample dataset indices randomly
+    train_indices = random.sample(range(len(train_data)), min(5000, len(train_data)))
+    memory_indices = random.sample(range(len(memory_data)), min(500, len(memory_data)))
+    test_indices = random.sample(range(len(test_data)), min(500, len(test_data)))
+
+    # Apply subsampling
+    train_data = torch.utils.data.Subset(train_data, train_indices)
+    memory_data = torch.utils.data.Subset(memory_data, memory_indices)
+    test_data = torch.utils.data.Subset(test_data, test_indices)
+
     return train_data, memory_data, test_data
+    # if pair:
+    #     if dataset_name == 'tiny_imagenet':
+    #         train_data = TinyImageNetPair(root=os.path.join(dataset_location, "train"), transform=train_transform)
+    #         memory_data = TinyImageNetPair(root=os.path.join(dataset_location, "train"), transform=test_transform)
+    #         test_data = TinyImageNetPair(root=os.path.join(dataset_location, "val"), transform=test_transform)
+    #     elif dataset_name == 'tiny_imagenet_true_label':
+    #         train_data = TinyImageNetPair_true_label(root=os.path.join(dataset_location, "train"), transform=train_transform)
+    #         memory_data = TinyImageNetPair_true_label(root=os.path.join(dataset_location, "train"), transform=test_transform)
+    #         test_data = TinyImageNetPair_true_label(root=os.path.join(dataset_location, "val"), transform=test_transform)
+    #     else:
+    #         raise Exception('Invalid dataset name')
+    # else:
+    #     if dataset_name in ['tiny_imagenet', 'tiny_imagenet_true_label']:
+    #         train_data = ImageFolder(root=os.path.join(dataset_location, "train"), transform=train_transform)
+    #         memory_data = ImageFolder(root=os.path.join(dataset_location, "train"), transform=test_transform)
+    #         test_data = ImageFolder(root=os.path.join(dataset_location, "val"), transform=test_transform)
+    #     else:
+    #         raise Exception('Invalid dataset name')
+
+    # return train_data, memory_data, test_data
 
 # Example Usage:
 # dataset_location should be set to "/kaggle/input/tiny-image-net/tiny-imagenet-200"
