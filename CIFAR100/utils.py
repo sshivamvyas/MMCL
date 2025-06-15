@@ -96,13 +96,6 @@ test_transform = transforms.Compose([
 ])
 
 def get_dataset(dataset_name, dataset_location, pair=True):
-    """
-    Returns subsampled train_data (5000 images), memory_data (500 images), test_data (500 images).
-    For Tiny ImageNet, the folder structure is assumed:
-      dataset_location/
-          train/
-          val/
-    """
     if pair:
         if dataset_name == 'tiny_imagenet':
             train_data = TinyImageNetPair(root=os.path.join(dataset_location, "train"), transform=train_transform)
