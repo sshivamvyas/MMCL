@@ -96,11 +96,12 @@ def test(net, memory_data_loader, test_data_loader, k, c, epoch, epochs, dataset
             pred_scores = torch.sum(one_hot_label.view(data.size(0), k, c) * sim_weight.unsqueeze(dim=-1), dim=1)
             pred_labels = pred_scores.argsort(dim=-1, descending=True)
             total_top1 += torch.sum((pred_labels[:, :1] == target.long().unsqueeze(dim=-1)).any(dim=-1).float()).item()
+            total_top3 += torch.sum((pred_labels[:, :3] == target.long().unsqueeze(dim=-1)).any(dim=-1).float()).item()
             total_top5 += torch.sum((pred_labels[:, :5] == target.long().unsqueeze(dim=-1)).any(dim=-1).float()).item()
             test_bar.set_description(
-                f"KNN Test Epoch: [{epoch}/{epochs}] Acc@1: {total_top1 / total_num * 100:.2f}% Acc@5: {total_top5 / total_num * 100:.2f}%"
+                f"KNN Test Epoch: [{epoch}/{epochs}] Accuracy@1: {total_top1 / total_num * 100:.2f}% Accuracy@1: {total_top1 / total_num * 100:.2f}%"
             )
-    return total_top1 / total_num * 100, total_top5 / total_num * 100
+    return total_top1 / total_num * 100, total_top3 / total_num * 100
 
 ############################
 # Main execution
